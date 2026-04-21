@@ -1,0 +1,42 @@
+.s-tag-pill {
+  /* based on .pxc-tags div in servercard.css; colors from theme */
+  display: inline-block;
+  padding: 2px 10px;
+  margin: 4px;
+  border-radius: 12px;
+  line-height: 1.5;
+  height: 20px;
+  font-family: Panton, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+
+  &--default {
+    background: var(--color-secondary);
+    color: var(--on-secondary );
+  }
+
+  &--accent {
+    background: var(--color-primary);
+    color: var(--on-primary);
+  }
+
+  &--success {
+    background: var(--plx-green);
+    color: var(--on-primary);
+  }
+
+  &--warning {
+    background: var(--plx-yellow);
+    color: var(--on-warn);
+  }
+
+  &--error {
+    background: var(--plx-danger);
+    color: var(--on-primary);
+  }
+
+  &--neutral {
+    background: var(--mid);
+    color: var(--on-primary);
+  }
+}

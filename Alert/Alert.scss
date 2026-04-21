@@ -1,0 +1,653 @@
+@use "sweetalert2/dist/sweetalert2.min.css";
+@use "./Stardust.scss";
+
+// =============================================================================
+// SweetAlert2 — Pollux / Stardust-UI Theme Override
+// Applied via customClass on every plxAlert call (see useAlert.ts).
+// Using BEM-like .plx-swal-* namespace keeps us clear of swal2 defaults and
+// prevents theme bleeding when swal2 is also used outside this composable.
+// =============================================================================
+
+// ─── Variables ───────────────────────────────────────────────────────────────
+
+$swal2-secondary: var(--color-secondary, #aa66ff);
+$swal2-bg: var(--bg-surface, #20202b);
+$swal2-text: #545454;
+$swal2-border: #d9d9d9;
+$swal2-placeholder: #ccc;
+$swal2-overlay: rgba(0, 0, 0, 0.4);
+
+// unused but kept for reference
+$swal2-error-color: #f27474;
+$swal2-info-color: #3fc3ee;
+$swal2-warning-color: #f9b95f;
+$swal2-question-color: #87adbd;
+
+// ─── Mixins ──────────────────────────────────────────────────────────────────
+@mixin user-select-none {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+@mixin animation($args...) {
+  -webkit-animation: $args;
+  animation: $args;
+}
+
+@mixin box-sizing($value) {
+  -webkit-box-sizing: $value;
+  box-sizing: $value;
+}
+
+@mixin box-shadow($args...) {
+  -webkit-box-shadow: $args;
+  box-shadow: $args;
+}
+
+@mixin transition($args...) {
+  -webkit-transition: $args;
+  transition: $args;
+}
+
+@mixin transform($args...) {
+  -webkit-transform: $args;
+  transform: $args;
+}
+
+@mixin transform-origin($args...) {
+  -webkit-transform-origin: $args;
+  transform-origin: $args;
+}
+
+@mixin placeholder {
+  &::-webkit-input-placeholder {
+    @content;
+  }
+
+  &::-moz-placeholder {
+    @content;
+  }
+
+  &:-ms-input-placeholder {
+    @content;
+  }
+
+  &::-ms-input-placeholder {
+    @content;
+  }
+
+  &::placeholder {
+    @content;
+  }
+}
+
+// =============================================================================
+// 1. Backdrop & container (base layout + theme z-index/backdrop)
+// =============================================================================
+
+// Minimal animate.css subset (used by showClass: { popup: 'animate__animated animate__fadeInLeft' })
+// We don't depend on the full external library, only the specific animation class.
+.animate__animated {
+  animation-duration: 0.3s;
+  animation-timing-function: ease-in-out;
+}
+
+.animate__fadeInLeft {
+  animation-name: animate__fadeInLeft;
+}
+
+.animate__fadeOutLeft {
+  animation-name: animate__fadeOutLeft;
+}
+
+.animate__fadeOutRight {
+  animation-name: animate__fadeOutRight;
+}
+
+@keyframes animate__fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translate3d(-100%, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes animate__fadeOutLeft {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(-100%, 0, 0);
+  }
+}
+
+@keyframes animate__fadeOutRight {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
+.swal2-container {
+  display: flex;
+  position: fixed;
+  z-index: 200000; // above dashboard 190060
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625em;
+  overflow-x: hidden;
+  background-color: transparent;
+  -webkit-overflow-scrolling: touch;
+
+
+  .plx-swal-popup--icon-left {
+    display: grid !important;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 1.5rem;
+    padding-left: 8rem;
+
+    .swal2-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.25rem;
+      width: 100%;
+    }
+
+    .plx-swal-icon {
+      position: absolute;
+      top: 0;
+      margin: 0.8rem;
+      width: 7rem;
+
+      flex-shrink: 0;
+    }
+
+    .swal2-actions {
+      margin-top: 0.16rem;
+      align-items: flex-end;
+      justify-content: flex-end;
+
+      width: 100%;
+    }
+
+    .plx-swal-title {
+      margin-top: 0;
+    }
+
+    .plx-swal-body {
+      margin: 0.4rem;
+    }
+
+    .plx-swal-close {
+      top: 0.75rem;
+      right: 0.75rem;
+      transform: scale(1.5);
+    }
+  }
+
+  &.swal2-backdrop-show {
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.90) 0%,
+      rgba(0, 0, 0, 0.75) 30%,
+      rgba(0, 0, 0, 0.55) 70%,
+      rgba(0, 0, 0, 0.75) 100%,
+    );
+
+    backdrop-filter: blur(4px);
+
+  }
+
+  &.plx-swal-no-backdrop.swal2-backdrop-show {
+    background: transparent;
+    backdrop-filter: none;
+    animation: none;
+  }
+
+  &.swal2-top {
+    align-items: flex-start;
+  }
+
+  &.swal2-top-left,
+  &.swal2-top-start {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  &.swal2-top-end,
+  &.swal2-top-right {
+    align-items: flex-start;
+    justify-content: flex-end;
+  }
+
+  &.swal2-center {
+    align-items: center;
+  }
+
+  &.swal2-center-left,
+  &.swal2-center-start {
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  &.swal2-center-end,
+  &.swal2-center-right {
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  &.swal2-bottom {
+    align-items: flex-end;
+  }
+
+  &.swal2-bottom-left,
+  &.swal2-bottom-start {
+    align-items: flex-end;
+    justify-content: flex-start;
+  }
+
+  &.swal2-bottom-end,
+  &.swal2-bottom-right {
+    align-items: flex-end;
+    justify-content: flex-end;
+  }
+
+  &.swal2-bottom-end,
+  &.swal2-bottom-left,
+  &.swal2-bottom-right,
+  &.swal2-bottom-start,
+  &.swal2-bottom {
+    > :first-child {
+      margin-top: auto;
+    }
+  }
+
+  &.swal2-grow-fullscreen>.swal2-modal {
+    display: flex !important;
+    flex: 1;
+    align-self: stretch;
+    justify-content: center;
+  }
+
+  &.swal2-grow-row>.swal2-modal {
+    display: flex !important;
+    flex: 1;
+    align-content: center;
+    justify-content: center;
+  }
+
+  &.swal2-grow-column {
+    flex: 1;
+    flex-direction: column;
+
+    &.swal2-bottom,
+    &.swal2-center,
+    &.swal2-top {
+      align-items: center;
+    }
+
+    &.swal2-bottom-left,
+    &.swal2-bottom-start,
+    &.swal2-center-left,
+    &.swal2-center-start,
+    &.swal2-top-left,
+    &.swal2-top-start {
+      align-items: flex-start;
+    }
+
+    &.swal2-bottom-end,
+    &.swal2-bottom-right,
+    &.swal2-center-end,
+    &.swal2-center-right,
+    &.swal2-top-end,
+    &.swal2-top-right {
+      align-items: flex-end;
+    }
+
+    >.swal2-modal {
+      display: flex !important;
+      flex: 1;
+      align-content: center;
+      justify-content: center;
+    }
+  }
+
+  &:not(.swal2-top):not(.swal2-top-start):not(.swal2-top-end):not(.swal2-top-left):not(.swal2-top-right):not(.swal2-center-start):not(.swal2-center-end):not(.swal2-center-left):not(.swal2-center-right):not(.swal2-bottom):not(.swal2-bottom-start):not(.swal2-bottom-end):not(.swal2-bottom-left):not(.swal2-bottom-right):not(.swal2-grow-fullscreen)>.swal2-modal {
+    margin: auto;
+  }
+
+  &.swal2-fade {
+    transition: background-color 0.1s;
+  }
+
+  &.swal2-shown {
+    background-color: $swal2-overlay;
+  }
+}
+
+// =============================================================================
+// 2. Pollux theme overrides (.plx-swal-* and swal2 inputs/validation/loader)
+// =============================================================================
+
+.plx-swal-popup {
+  display: flex !important;
+  position: relative;
+  box-sizing: border-box;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: var(--bg-surface, var(--darker, #1e1e2e));
+  color: var(--on-main, #c9ccd1);
+  border-radius: 16px;
+  padding: 2rem 2rem 1.5rem;
+  font-family: "Quicksand", system-ui, sans-serif;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  max-width: 480px;
+  width: 100%;
+
+  &.swal2-actions {
+    margin-top: 0.16rem;
+    direction: rtl;
+  }
+
+  &.swal2-show:not(.animate__animated) {
+    animation: var(--swal2-show-animation) !important;
+  }
+
+  &.swal2-hide:not(.animate__animated) {
+    animation: var(--swal2-hide-animation) !important;
+  }
+
+  &.swal2-loading {
+    overflow-y: hidden;
+  }
+}
+
+// ---- Title ------------------------------------------------------------------
+.plx-swal-title {
+  color: var(--on-main--bold, var(--on-main));
+  font-size: 1.35rem;
+  font-weight: 700;
+  text-align: left;
+  margin-bottom: 0.25rem;
+  padding: 0;
+}
+
+// ---- Body text / HTML container ---------------------------------------------
+.plx-swal-body {
+  color: var(--on-main--dim-mid, var(--on-main));
+  font-size: 0.95rem;
+  line-height: 1.6;
+  text-align: left;
+  padding: 0;
+  margin-top: 0.25rem;
+}
+
+// ---- Close button -----------------------------------------------------------
+.plx-swal-close {
+  position: absolute;
+  z-index: 2;
+  top: 1rem;
+  right: 1rem;
+  color: var(--on-main--dim, var(--on-main));
+  font-size: 1.4rem;
+  line-height: 1;
+  padding: 0;
+  border: none;
+  background: 0 0;
+  cursor: url(/cur/pointer.png), pointer;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--on-main, #c9ccd1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus-ring, rgba(92, 110, 248, 0.5));
+    border-radius: 4px;
+  }
+
+  &:focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
+// ---- Actions row (button wrapper) -------------------------------------------
+.plx-swal-actions {
+  display: flex;
+  z-index: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 1rem;
+  margin-top: 1.8rem;
+  padding: 0;
+
+  &:not(.swal2-loading) {
+
+    .plx-swal-btn[disabled],
+    .plx-swal-btn[disabled]:hover {
+      opacity: 0.7;
+    }
+  }
+
+  &.swal2-loading {
+
+    .plx-swal-btn--confirm,
+    .swal2-styled.swal2-confirm {
+      @include user-select-none;
+      @include animation(swal2-rotate-loading 1.5s linear 0s infinite normal);
+      box-sizing: border-box;
+      width: 2.5em;
+      height: 2.5em;
+      margin: 0.46875em;
+      padding: 0;
+      border: 0.49em solid transparent;
+      border-radius: 100%;
+      border-color: transparent;
+      background: transparent !important;
+      color: transparent;
+      cursor: default;
+    }
+
+    .plx-swal-btn--cancel,
+    .swal2-styled.swal2-cancel {
+      margin-right: 30px;
+      margin-left: 30px;
+    }
+
+    :not(.swal2-styled):not(.plx-swal-btn).swal2-confirm::after {
+      @include animation(swal2-rotate-loading 1.5s linear 0s infinite normal);
+      content: "";
+      display: inline-block;
+      width: 15px;
+      height: 15px;
+      margin-left: 5px;
+      border: 3px solid #999;
+      border-radius: 50%;
+      border-right-color: transparent;
+      box-shadow: 1px 1px 1px #fff;
+    }
+  }
+}
+
+// ---- Custom icon slot (Vue icons from Alert/Icons mounted via useAlert) --------
+.plx-swal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.875rem;
+  width: 8rem;
+  height: 8rem;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: default;
+  @include user-select-none;
+
+  &.swal2-icon-show {
+    animation: plx-swal-icon-pulse 450ms cubic-bezier(0, 0.92, 0.98, 1.46);
+  }
+
+  [data-plx-icon-mount] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+
+    svg {
+      width: 92%;
+      height: 92%;
+    }
+  }
+}
+
+.swal2-icon-content {
+  width: 100%;
+}
+
+// ---- Validation error message (showValidationMessage) -----------------------
+.swal2-validation-message {
+  background: rgba(240, 32, 64, 0.12);
+  color: var(--plx-danger, #f02040);
+  font-family: inherit;
+  border-radius: 6px;
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+}
+
+// ---- Input inside a swal (Swal.fire with input: 'text' etc.) ----------------
+.swal2-input,
+.swal2-textarea,
+.swal2-select,
+.swal2-file {
+  background: var(--bg-surface, rgba(255, 255, 255, 0.06));
+  border: 2px solid var(--color-primary, #f35);
+  border-radius: 8px;
+  color: var(--on-main, #c9ccd1);
+  font-family: Panton, var(--display-font, system-ui), sans-serif;
+  font-size: 1rem;
+
+  &::placeholder {
+    color: var(--on-main--dim, #888);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-secondary, #a6f);
+    box-shadow: 0 0 0 3px var(--focus-ring, rgba(92, 110, 248, 0.2));
+  }
+}
+
+// ---- Loader (showLoaderOnConfirm) -------------------------------------------
+.swal2-loader {
+  border-color: var(--color-secondary, #a6f) transparent var(--color-secondary, #a6f) transparent;
+}
+
+// =============================================================================
+// 3. Keyframes (SweetAlert2 animations)
+// =============================================================================
+@keyframes swal2-show {
+  0% {
+    transform: scale(0.8) translateY(10%);
+    opacity: 0;
+  }
+
+  50% {
+    transform: scale(1);
+  }
+
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes swal2-elastic {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+
+  45% {
+    transform: scale(1.03);
+  }
+
+  80% {
+    transform: scale(0.95);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes plx-swal-icon-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0;
+  }
+
+  11% {
+    transform: scale(0.8);
+    opacity: 0.2;
+  }
+
+  55% {
+    transform: scale(2.18);
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes swal2-hide {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+}
+
+@keyframes swal2-rotate-loading {
+  0% {
+    transform: rotate(0);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+

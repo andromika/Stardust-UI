@@ -1,0 +1,210 @@
+/* Card: background is opposite of theme (light theme → dark card, dark theme → light card) */
+.st-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* prevent overflow blowout in grid/flex contexts */
+  width: 100%;
+  max-width: 480px; /* standalone default — grid/flex parent overrides as needed */
+  background-color: var(--bg-card, var(--bg-contrast, #eef));
+  color: var(--on-contrast, var(--dark, #2b2b3b));
+  font-family: Proxima Soft, Panton, sans-serif;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px var(--shadow, rgba(0, 0, 0, 0.15));
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+  & .st-super-shadow {
+    font-size: 18pt;
+    letter-spacing: 1px;
+  }
+}
+
+.st-card__header {
+  padding: 16px 20px 0;
+  margin-bottom: 8px;
+}
+
+.st-card__title {
+  color: inherit;
+}
+
+.st-card__media {
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg-surface, #2a2a3a);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+
+  img,
+  video {
+    display: block;
+    object-position: top center;
+    image-rendering: auto;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+  }
+
+  &--aspect {
+    aspect-ratio: 16 / 10;
+
+    img,
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &:not(.st-card__media--aspect) img,
+  &:not(.st-card__media--aspect) video {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+  }
+}
+
+.st-card__body {
+  flex: 1; /* grow to fill card height — anchors footer to the bottom in grids */
+  padding: 0 20px 20px;
+  &:first-child {
+    margin-top: 20px;
+  }
+}
+
+.st-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 12px 20px 20px;
+  border-top: 1px solid var(--st-card-divider, rgba(0, 0, 0, 0.1));
+}
+
+/* Size variants — control density (padding / type scale); standalone max-width is advisory */
+.st-card--sm {
+  border-radius: 6px;
+  max-width: 320px;
+  & .st-super-shadow {
+    font-size: 16pt;
+    letter-spacing: 0px;
+  }
+
+  .st-card__header {
+    padding: 10px 14px 0;
+    margin-bottom: 4px;
+  }
+
+  .st-card__title {
+    font-size: 1rem;
+  }
+
+  .st-card__body {
+    padding: 0 14px 14px;
+    font-size: 0.875rem;
+
+    &:first-child {
+      margin-top: 12px;
+    }
+  }
+
+  .st-card__actions {
+    padding: 8px 14px 14px;
+    gap: 0.375rem;
+  }
+}
+
+.st-card--lg {
+  border-radius: 10px;
+  max-width: none; /* lg is a full-width panel — fills its container */
+
+  .st-card__header {
+    padding: 24px 28px 0;
+    margin-bottom: 12px;
+  }
+
+  .st-card__title {
+    font-size: 1.5rem;
+  }
+
+  .st-card__body {
+    padding: 0 28px 28px;
+    font-size: 14pt;
+
+    &:first-child {
+      margin-top: 24px;
+    }
+  }
+
+  .st-card__actions {
+    padding: 16px 28px 28px;
+    gap: 0.75rem;
+  }
+}
+
+.st-card--bordered {
+  border: 2px solid var(--on-main--faint, var(--dark, #2b2b3b));
+}
+
+/* Clickable card — hover lift + keyboard focus ring + ripple */
+.st-card--clickable {
+  position: relative; /* ripple anchors to card */
+  cursor: pointer;
+  user-select: none;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 8px 24px var(--shadow, rgba(0, 0, 0, 0.22));
+    transform: translateY(-2px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary, #5c6ef8);
+    outline-offset: 4px;
+  }
+  &:active {
+    box-shadow: 0 2px 4px var(--shadow, rgba(0, 0, 0, 0.15));
+    transform: translateY(2px);
+  }
+
+  .st-card__ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: var(--color-primary, #5c6ef8);
+    opacity: 0;
+    pointer-events: none;
+    animation: st-card-ripple 0.55s ease-out forwards;
+  }
+}
+
+@keyframes st-card-ripple {
+  from {
+    transform: scale(0);
+    opacity: 0.18;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Flush body — removes body padding for full-bleed content */
+.st-card--flush {
+  .st-card__body {
+    padding: 0;
+    &:first-child { margin-top: 0; }
+  }
+}
+
+/* Grid layout helper — cards fill columns naturally; column count adapts to container width */
+.st-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  align-items: stretch; /* cards in the same row share height */
+  gap: 20px;
+
+  > .st-card {
+    max-width: none; /* grid track drives width, not the card's own cap */
+    width: 100%;
+  }
+}

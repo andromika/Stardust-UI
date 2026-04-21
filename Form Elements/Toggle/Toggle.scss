@@ -1,0 +1,97 @@
+// Toggle (switch) styling from admin plx-pink-check
+.st-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &__input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  &__track {
+    display: block;
+    width: 48px;
+    height: 26px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 20px;
+    flex-shrink: 0;
+
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      border-radius: 13px;
+      box-sizing: border-box;
+      transition: 0.3s ease;
+    }
+
+    // Knob (unchecked: small pill on left)
+    &::before {
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      background-color: var(--color-primary);
+      opacity: 0.5;
+    }
+
+    // Track border (unchecked: full track border)
+    &::after {
+      top: 0;
+      right: 0;
+      width: 48px;
+      height: 26px;
+      border: 3px solid var(--color-primary);
+    }
+  }
+
+  // Focus-visible ring on track when input is keyboard-focused
+  &__input:focus-visible + &__track {
+    box-shadow: 0 0 0 3px var(--focus-ring, rgba(92, 110, 248, 0.35));
+    outline: none;
+  }
+
+  &__input:checked + &__track {
+    &::before {
+      top: 0;
+      left: 0;
+      width: 48px;
+      height: 26px;
+      border: 3px solid #143240;
+      background-color: var(--color-primary);
+      opacity: 1;
+    }
+
+    &::after {
+      top: 3px;
+      right: 3px;
+      width: 20px;
+      height: 20px;
+      border-color: var(--lightest, #fff);
+      background-color: rgba(255, 255, 255, 0.3);
+      opacity: 1;
+    }
+  }
+
+  &__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--on-main--dim-mid, #4b4b5f);
+    font-weight: 500;
+  }
+
+  &--disabled &__track {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  &--disabled &__input:checked + &__track::before {
+    border-color: var(--lighter, #ccc);
+  }
+}

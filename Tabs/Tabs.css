@@ -1,0 +1,97 @@
+@charset "UTF-8";
+.st-tabs {
+  display: flex;
+  flex-direction: column;
+  /* ── Tab list ─────────────────────────────────── */
+  /* ── Individual tab button ────────────────────── */
+  /* ── Sliding indicator ────────────────────────── */
+  /* ── Panel ────────────────────────────────────── */
+}
+
+.st-tabs__list {
+  position: relative;
+  /* anchor for the sliding indicator */
+  display: flex;
+  flex-wrap: wrap;
+  border-bottom: 1px solid color-mix(in srgb, var(--text-dim, #888) 22%, transparent);
+  padding: 0;
+  margin: 0 0 4px;
+  gap: 0;
+}
+
+.st-tabs__tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px 10px;
+  background: none;
+  border: 0;
+  font: inherit;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim, #888);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.22s;
+  outline: none;
+}
+
+.st-tabs__tab:hover:not(:disabled) {
+  color: var(--text-main, #eee);
+}
+
+.st-tabs__tab:focus-visible {
+  box-shadow: 0 0 0 3px var(--focus-ring, rgba(92, 110, 248, 0.4));
+  border-radius: 3px 3px 0 0;
+  z-index: 1;
+}
+
+.st-tabs__tab:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.st-tabs__tab i, .st-tabs__tab [class*="fa-"] {
+  font-size: 1em;
+  line-height: 1;
+  flex-shrink: 0;
+  color: var(--color-primary, #f48);
+}
+
+.st-tabs__tab--active {
+  color: var(--color-primary, #f48);
+  font-weight: 800;
+}
+
+.st-tabs__tab--active i, .st-tabs__tab--active [class*="fa-"] {
+  color: var(--color-secondary);
+}
+
+.st-tabs__indicator {
+  position: absolute;
+  bottom: 0;
+  height: 2px;
+  background: var(--color-primary, #f48);
+  border-radius: 2px 2px 0 0;
+  pointer-events: none;
+  /* snap on first render, animate after mount */
+  transition: none;
+}
+
+.st-tabs__indicator--ready {
+  transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1), width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.st-tabs__panel {
+  outline: none;
+  padding: 20px 0;
+}
+
+.st-tabs__panel:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--focus-ring, rgba(92, 110, 248, 0.4));
+  border-radius: 4px;
+}
