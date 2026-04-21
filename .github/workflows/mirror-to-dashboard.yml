@@ -102,8 +102,8 @@ jobs:
             git add "${FRONTEND_PREFIX}/"
             git commit -m "chore: sync Stardust UI changes from ${SOURCE_REPO}
 
-Synced from: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
-Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            Synced from: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+            Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           fi
 
       - name: Push to target repository
