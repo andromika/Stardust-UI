@@ -1,40 +1,17 @@
-name: Sync UI to PolestarLabs
+name: Archived Sync UI to PolestarLabs
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'src/ui/**'
-      - 'src/stories/**'
-      - 'src/assets/**'
-      - '.storybook/**'
-      - 'package.json'
-      - 'tsconfig.json'
-      - '.github/workflows/sync-to-polestarlabs.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: stardust-sync-polestarlabs-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   sync-main-repo:
-    name: Sync to PolestarLabs/Stardust-UI
+    name: Archived sync to PolestarLabs/Stardust-UI
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Push to PolestarLabs mirror
+      - name: Archived workflow notice
         run: |
-          git push "https://x-access-token:${{ secrets.POLESTARLABS_SYNC_TOKEN }}@github.com/PolestarLabs/Stardust-UI.git" main
-        continue-on-error: true
-
-      - name: Sync status
-        run: |
-          echo "Synced Stardust-UI main branch to PolestarLabs organization"
+          echo "sync-to-polestarlabs.yml is archived."
+          echo "Use .github/workflows/mirror-to-dashboard.yml to sync Stardust UI changes into PolestarLabs/dashboard."
