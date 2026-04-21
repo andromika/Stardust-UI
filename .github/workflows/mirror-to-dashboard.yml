@@ -96,10 +96,38 @@ jobs:
             cp -r .storybook/* "${FRONTEND_PREFIX}/.storybook/" 2>/dev/null || true
           fi
 
+      - name: Generate sync report
+        run: |
+          git add "${FRONTEND_PREFIX}/"
+          {
+            echo "## Stardust UI \u2192 Dashboard Sync"
+            echo ""
+            echo "**Source:** [\`${SOURCE_REPO}@$(git rev-parse --short HEAD)\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})"
+            echo "**Target:** \`${TARGET_REPO}@${TARGET_BRANCH}\`"
+            echo ""
+            CHANGED=$(git diff --cached --name-only | wc -l | tr -d ' ')
+            if [[ "$CHANGED" -eq 0 ]]; then
+              echo "### ✅ Nothing changed — target is already up to date"
+            else
+              echo "### 📝 $CHANGED file(s) changed"
+              echo ""
+              echo '```'
+              git diff --cached --stat
+              echo '```'
+              echo ""
+              echo "<details><summary>File status</summary>"
+              echo ""
+              echo '```'
+              git diff --cached --name-status
+              echo '```'
+              echo ""
+              echo "</details>"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Commit mirror changes
         run: |
-          if [[ ! -z "$(git status --porcelain)" ]]; then
-            git add "${FRONTEND_PREFIX}/"
+          if [[ -n "$(git diff --cached --name-only)" ]]; then
             git commit -m "chore: sync Stardust UI changes from ${SOURCE_REPO}
 
             Synced from: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
