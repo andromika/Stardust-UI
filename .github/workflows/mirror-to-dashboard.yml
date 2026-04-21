@@ -1,0 +1,122 @@
+name: Mirror to Dashboard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/ui/**'
+      - 'src/stories/**'
+      - 'src/assets/fonts.css'
+      - 'src/assets/tailwind.css'
+      - '.storybook/**'
+      - '.github/workflows/mirror-to-dashboard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mirror-to-polestarlabs:
+    name: Mirror UI changes to PolestarLabs dashboard
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_REPO: ${{ github.repository }}
+      TARGET_REPO: PolestarLabs/dashboard
+      TARGET_BRANCH: dash-v3
+      FRONTEND_PREFIX: frontend
+    steps:
+      - name: Checkout Stardust UI
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add dashboard remote
+        run: |
+          git remote add dashboard "https://x-access-token:${{ secrets.DASHBOARD_SYNC_TOKEN }}@github.com/${TARGET_REPO}.git"
+
+      - name: Fetch target branch
+        run: |
+          git fetch dashboard "${TARGET_BRANCH}" || echo "Branch does not exist yet"
+
+      - name: Create temporary working tree
+        run: |
+          mkdir -p /tmp/mirror-work
+          cd /tmp/mirror-work
+          git init --bare mirror.git
+
+      - name: Initialize target branch if needed
+        run: |
+          if ! git rev-parse "dashboard/${TARGET_BRANCH}" 2>/dev/null; then
+            echo "Creating new branch ${TARGET_BRANCH}"
+            git checkout --orphan "${TARGET_BRANCH}"
+            git rm -rf .
+            touch .gitkeep
+            git add .gitkeep
+            git commit -m "Initial commit for UI mirror" || true
+            git push dashboard "${TARGET_BRANCH}"
+          fi
+
+      - name: Checkout target structure
+        run: |
+          git fetch dashboard "${TARGET_BRANCH}"
+          git checkout -b "mirror/${TARGET_BRANCH}" "dashboard/${TARGET_BRANCH}"
+
+      - name: Prepare UI paths for merge
+        run: |
+          # Create frontend structure
+          mkdir -p "${FRONTEND_PREFIX}"
+          
+          # Copy UI assets to frontend location
+          mkdir -p "${FRONTEND_PREFIX}/src/ui" "${FRONTEND_PREFIX}/src/stories" "${FRONTEND_PREFIX}/src/assets" "${FRONTEND_PREFIX}/.storybook"
+          
+          # Copy files from Stardust UI layout
+          if [ -d "src/ui" ]; then
+            cp -r src/ui/* "${FRONTEND_PREFIX}/src/ui/" 2>/dev/null || true
+          fi
+          
+          if [ -d "src/stories" ]; then
+            cp -r src/stories/* "${FRONTEND_PREFIX}/src/stories/" 2>/dev/null || true
+          fi
+          
+          if [ -f "src/assets/fonts.css" ]; then
+            cp src/assets/fonts.css "${FRONTEND_PREFIX}/src/assets/"
+          fi
+          
+          if [ -f "src/assets/tailwind.css" ]; then
+            cp src/assets/tailwind.css "${FRONTEND_PREFIX}/src/assets/"
+          fi
+          
+          if [ -d ".storybook" ]; then
+            cp -r .storybook/* "${FRONTEND_PREFIX}/.storybook/" 2>/dev/null || true
+          fi
+
+      - name: Commit mirror changes
+        run: |
+          if [[ ! -z "$(git status --porcelain)" ]]; then
+            git add "${FRONTEND_PREFIX}/"
+            git commit -m "chore: sync Stardust UI changes from ${SOURCE_REPO}
+
+Synced from: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+
+      - name: Push to target repository
+        run: |
+          git push dashboard "mirror/${TARGET_BRANCH}:${TARGET_BRANCH}"
+
+      - name: Create sync notification
+        if: success()
+        run: |
+          echo "Successfully mirrored Stardust UI changes to ${TARGET_REPO}/${TARGET_BRANCH}/frontend"
+
+      - name: Handle sync failure
+        if: failure()
+        run: |
+          echo "Failed to sync UI changes"
+          exit 1
