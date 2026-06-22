@@ -83,6 +83,7 @@ const props = withDefaults(
     lightBackground?: boolean;
     disabled?: boolean;
     listMaxHeight?: string;
+    listMaxWidth?: string;
     triggerAriaLabel?: string;
   }>(),
   {
@@ -91,6 +92,7 @@ const props = withDefaults(
     variant: 'solid',
     size: 'md',
     listMaxHeight: '40vh',
+    listMaxWidth: '400px',
     triggerAriaLabel: 'Select option',
   }
 );
@@ -120,7 +122,9 @@ function updateMenuPosition() {
     position: 'fixed',
     left: `${r.left}px`,
     top: `${r.bottom - bw}px`,
+    minWidth: `${r.width}px`,
     width: `${r.width}px`,
+    maxWidth: props.listMaxWidth,
     right: 'auto',
     maxHeight: props.listMaxHeight,
     zIndex: '2000',
