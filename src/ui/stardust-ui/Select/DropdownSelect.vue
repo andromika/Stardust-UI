@@ -6,6 +6,7 @@
 )
   label.st-dropdown-select__label(v-if="label" :for="triggerId") {{ label }}
   button.st-dropdown-select__trigger(
+    ref="triggerRef"
     type="button"
     :id="triggerId"
     :disabled="disabled"
@@ -27,32 +28,34 @@
         small.st-dropdown-select__desc(v-if="selectedOption.description") {{ selectedOption.description }}
     span.st-dropdown-select__placeholder(v-else) {{ placeholder }}
     span.st-dropdown-select__chevron(aria-hidden="true")
-  ul.st-dropdown-select__list(
-    v-show="open"
-    role="listbox"
-    :aria-labelledby="triggerId"
-    :style="{ maxHeight: listMaxHeight }"
-    tabindex="-1"
-  )
-    li.st-dropdown-select__option(
-      v-for="opt in options"
-      :key="String(opt.value)"
-      :ref="(el) => setSelectedOptionRef(el, opt)"
-      role="option"
-      :aria-selected="isSelected(opt)"
-      :class="{ 'st-dropdown-select__option--selected': isSelected(opt) }"
-      @click="select(opt)"
+  Teleport(to="body")
+    ul.st-dropdown-select__list.st-dropdown-select__list--floating(
+      v-show="open"
+      ref="listRef"
+      role="listbox"
+      :aria-labelledby="triggerId"
+      :style="menuStyle"
+      tabindex="-1"
     )
-      img.st-dropdown-select__image(
-        v-if="opt.imageUrl"
-        :src="opt.imageUrl"
-        :alt="''"
-        :width="size === 'lg' ? 32 : 24"
-        :height="size === 'lg' ? 32 : 24"
+      li.st-dropdown-select__option(
+        v-for="opt in options"
+        :key="String(opt.value)"
+        :ref="(el) => setSelectedOptionRef(el, opt)"
+        role="option"
+        :aria-selected="isSelected(opt)"
+        :class="{ 'st-dropdown-select__option--selected': isSelected(opt) }"
+        @click="select(opt)"
       )
-      span.st-dropdown-select__text
-        span.st-dropdown-select__name {{ opt.label }}
-        small.st-dropdown-select__desc(v-if="opt.description") {{ opt.description }}
+        img.st-dropdown-select__image(
+          v-if="opt.imageUrl"
+          :src="opt.imageUrl"
+          :alt="''"
+          :width="size === 'lg' ? 32 : 24"
+          :height="size === 'lg' ? 32 : 24"
+        )
+        span.st-dropdown-select__text
+          span.st-dropdown-select__name {{ opt.label }}
+          small.st-dropdown-select__desc(v-if="opt.description") {{ opt.description }}
 </template>
 
 <script setup lang="ts">
@@ -98,8 +101,34 @@ const emit = defineEmits<{
 
 const triggerId = computed(() => `st-dropdown-${Math.random().toString(36).slice(2, 9)}`);
 const rootRef = ref<HTMLElement | null>(null);
+const triggerRef = ref<HTMLElement | null>(null);
+const listRef = ref<HTMLElement | null>(null);
 const selectedOptionRef = ref<HTMLElement | null>(null);
 const open = ref(false);
+const menuStyle = ref<Record<string, string>>({});
+
+// The listbox is teleported to <body> so an ancestor's overflow:hidden / scroll
+// container can never clip it. Because it leaves the root we re-establish the
+// border CSS vars inline and pin it to the trigger with fixed coordinates,
+// re-synced on scroll/resize while open.
+function updateMenuPosition() {
+  const el = triggerRef.value;
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const bw = props.variant === 'ghost' ? 2 : 3;
+  menuStyle.value = {
+    position: 'fixed',
+    left: `${r.left}px`,
+    top: `${r.bottom - bw}px`,
+    width: `${r.width}px`,
+    right: 'auto',
+    maxHeight: props.listMaxHeight,
+    zIndex: '2000',
+    '--_bw': `${bw}px`,
+    '--_bc': 'var(--color-primary, #f35)',
+    '--_radius': props.size === 'sm' ? '6px' : props.size === 'lg' ? '10px' : '8px',
+  };
+}
 
 const currentValue = computed(() => props.modelValue);
 
@@ -128,8 +157,14 @@ const rootClasses = computed(() => ({
 watch(open, (isOpen) => {
   if (isOpen) {
     nextTick(() => {
+      updateMenuPosition();
       selectedOptionRef.value?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     });
+    window.addEventListener('scroll', updateMenuPosition, true);
+    window.addEventListener('resize', updateMenuPosition);
+  } else {
+    window.removeEventListener('scroll', updateMenuPosition, true);
+    window.removeEventListener('resize', updateMenuPosition);
   }
 });
 
@@ -144,9 +179,10 @@ function select(opt: DropdownSelectOption) {
 }
 
 function onDocumentClick(e: MouseEvent) {
-  if (rootRef.value && !rootRef.value.contains(e.target as Node)) {
-    open.value = false;
-  }
+  const t = e.target as Node;
+  if (rootRef.value && rootRef.value.contains(t)) return;
+  if (listRef.value && listRef.value.contains(t)) return;
+  open.value = false;
 }
 
 function onKeydown(e: KeyboardEvent) {
@@ -164,5 +200,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', onDocumentClick);
   document.removeEventListener('keydown', onKeydown);
+  window.removeEventListener('scroll', updateMenuPosition, true);
+  window.removeEventListener('resize', updateMenuPosition);
 });
 </script>

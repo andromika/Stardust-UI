@@ -6,6 +6,7 @@
 )
   label.st-select__label(v-if="label" :for="triggerId") {{ label }}
   button.st-select__trigger(
+    ref="triggerRef"
     type="button"
     :id="triggerId"
     :disabled="disabled"
@@ -23,25 +24,27 @@
         span.st-select__name {{ selectedOption.label }}
     span.st-select__placeholder(v-else) {{ placeholder }}
     span.st-select__chevron(aria-hidden="true")
-  ul.st-select__list(
-    v-show="open"
-    role="listbox"
-    :aria-labelledby="triggerId"
-    :style="{ maxHeight: listMaxHeight }"
-    tabindex="-1"
-  )
-    li.st-select__option(
-      v-for="(opt, idx) in options"
-      :key="String(opt.value)"
-      :ref="(el) => setOptionRef(el, idx)"
-      role="option"
-      :aria-selected="isSelected(opt)"
-      :class="optionClasses(opt, idx)"
-      @click="select(opt)"
-      @mouseenter="focusedIndex = idx"
+  Teleport(to="body")
+    ul.st-select__list.st-select__list--floating(
+      v-show="open"
+      ref="listRef"
+      role="listbox"
+      :aria-labelledby="triggerId"
+      :style="menuStyle"
+      tabindex="-1"
     )
-      slot(name="option" :option="opt")
-        span.st-select__name {{ opt.label }}
+      li.st-select__option(
+        v-for="(opt, idx) in options"
+        :key="String(opt.value)"
+        :ref="(el) => setOptionRef(el, idx)"
+        role="option"
+        :aria-selected="isSelected(opt)"
+        :class="optionClasses(opt, idx)"
+        @click="select(opt)"
+        @mouseenter="focusedIndex = idx"
+      )
+        slot(name="option" :option="opt")
+          span.st-select__name {{ opt.label }}
   .st-select__error(v-if="error" role="alert") {{ error }}
 </template>
 
@@ -88,8 +91,34 @@ const emit = defineEmits<{
 
 const triggerId = computed(() => `st-select-${Math.random().toString(36).slice(2, 9)}`);
 const rootRef = ref<HTMLElement | null>(null);
+const triggerRef = ref<HTMLElement | null>(null);
+const listRef = ref<HTMLElement | null>(null);
+const menuStyle = ref<Record<string, string>>({});
 const open = ref(false);
 const focusedIndex = ref(-1);
+
+// The listbox is teleported to <body> so it can never be clipped by an
+// ancestor's overflow:hidden / scroll container. Because it leaves the root, we
+// re-establish the border CSS vars inline and pin it to the trigger with fixed
+// coordinates, kept in sync on scroll/resize while open.
+function updateMenuPosition() {
+  const el = triggerRef.value;
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const bw = props.variant === 'ghost' ? 2 : 3;
+  menuStyle.value = {
+    position: 'fixed',
+    left: `${r.left}px`,
+    top: `${r.bottom - bw}px`,
+    width: `${r.width}px`,
+    right: 'auto',
+    maxHeight: props.listMaxHeight,
+    zIndex: '2000',
+    '--_bw': `${bw}px`,
+    '--_bc': 'var(--color-primary, #f35)',
+    '--_radius': props.size === 'sm' ? '6px' : '8px',
+  };
+}
 
 const rootClasses = computed(() => ({
   'st-select--open': open.value,
@@ -124,6 +153,12 @@ watch(open, (isOpen) => {
   if (isOpen) {
     const selIdx = props.options.findIndex((opt) => isSelected(opt));
     focusedIndex.value = selIdx >= 0 ? selIdx : 0;
+    nextTick(updateMenuPosition);
+    window.addEventListener('scroll', updateMenuPosition, true);
+    window.addEventListener('resize', updateMenuPosition);
+  } else {
+    window.removeEventListener('scroll', updateMenuPosition, true);
+    window.removeEventListener('resize', updateMenuPosition);
   }
 });
 
@@ -158,9 +193,10 @@ function onEnter() {
 }
 
 function onDocumentClick(e: MouseEvent) {
-  if (rootRef.value && !rootRef.value.contains(e.target as Node)) {
-    open.value = false;
-  }
+  const t = e.target as Node;
+  if (rootRef.value && rootRef.value.contains(t)) return;
+  if (listRef.value && listRef.value.contains(t)) return;
+  open.value = false;
 }
 
 function onKeydown(e: KeyboardEvent) {
@@ -177,5 +213,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', onDocumentClick);
   document.removeEventListener('keydown', onKeydown);
+  window.removeEventListener('scroll', updateMenuPosition, true);
+  window.removeEventListener('resize', updateMenuPosition);
 });
 </script>

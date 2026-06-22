@@ -7,6 +7,7 @@
 )
   label.st-multiselect__label(v-if="label" :for="triggerId") {{ label }}
   .st-multiselect__trigger-wrap(
+    ref="triggerRef"
     :class="{ 'st-multiselect__trigger-wrap--open': open }"
   )
     button.st-multiselect__trigger(
@@ -51,29 +52,31 @@
         @keydown.backspace="onBackspace"
       )
 
-  ul.st-multiselect__list(
-    v-show="open"
-    role="listbox"
-    :aria-multiselectable="true"
-    :aria-labelledby="triggerId"
-    :style="{ maxHeight: listMaxHeight }"
-    tabindex="-1"
-  )
-    li.st-multiselect__list-header(v-if="$slots['list-header']")
-      slot(name="list-header")
-    li.st-multiselect__option(
-      v-for="(opt, idx) in filteredOptions"
-      :key="String(getOptionValue(opt))"
-      :ref="(el) => setFocusedRef(el, idx)"
-      role="option"
-      :aria-selected="isSelected(opt)"
-      :class="getOptionClasses(opt, idx)"
-      @click.stop="toggleOption(opt)"
-      @mouseenter="focusedIndex = idx"
+  Teleport(to="body")
+    ul.st-multiselect__list.st-multiselect__list--floating(
+      v-show="open"
+      ref="listRef"
+      role="listbox"
+      :aria-multiselectable="true"
+      :aria-labelledby="triggerId"
+      :style="menuStyle"
+      tabindex="-1"
     )
-      span.st-multiselect__check(:class="{ 'st-multiselect__check--active': isSelected(opt) }")
-      slot(name="option" :option="opt" :selected="isSelected(opt)")
-        span.st-multiselect__name {{ getOptionLabel(opt) }}
+      li.st-multiselect__list-header(v-if="$slots['list-header']")
+        slot(name="list-header")
+      li.st-multiselect__option(
+        v-for="(opt, idx) in filteredOptions"
+        :key="String(getOptionValue(opt))"
+        :ref="(el) => setFocusedRef(el, idx)"
+        role="option"
+        :aria-selected="isSelected(opt)"
+        :class="getOptionClasses(opt, idx)"
+        @click.stop="toggleOption(opt)"
+        @mouseenter="focusedIndex = idx"
+      )
+        span.st-multiselect__check(:class="{ 'st-multiselect__check--active': isSelected(opt) }")
+        slot(name="option" :option="opt" :selected="isSelected(opt)")
+          span.st-multiselect__name {{ getOptionLabel(opt) }}
 </template>
 
 <script setup lang="ts">
@@ -136,6 +139,9 @@ const searchInputRef = ref<HTMLInputElement | null>(null);
 const open = ref(false);
 const searchQuery = ref('');
 const focusedIndex = ref(0);
+const triggerRef = ref<HTMLElement | null>(null);
+const listRef = ref<HTMLElement | null>(null);
+const menuStyle = ref<Record<string, string>>({});
 
 const resolvedColumns = computed(() => {
   const raw = props.columns ?? (props.columnLayout ? 2 : 1);
@@ -231,7 +237,15 @@ watch(open, (isOpen) => {
   if (isOpen) {
     searchQuery.value = '';
     focusedIndex.value = 0;
-    nextTick(() => searchInputRef.value?.focus());
+    nextTick(() => {
+      updateMenuPosition();
+      searchInputRef.value?.focus();
+    });
+    window.addEventListener('scroll', updateMenuPosition, true);
+    window.addEventListener('resize', updateMenuPosition);
+  } else {
+    window.removeEventListener('scroll', updateMenuPosition, true);
+    window.removeEventListener('resize', updateMenuPosition);
   }
 });
 
@@ -241,6 +255,29 @@ watch(focusedIndex, (idx) => {
 });
 
 // --- Actions ---
+// Listbox is teleported to <body> so it is never clipped by an overflow
+// ancestor; re-establish the border vars + column count inline and pin it to
+// the trigger with fixed coords, re-synced on scroll/resize while open.
+function updateMenuPosition() {
+  const el = triggerRef.value;
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const bw = props.variant === 'ghost' ? 2 : 3;
+  menuStyle.value = {
+    position: 'fixed',
+    left: `${r.left}px`,
+    top: `${r.bottom - bw}px`,
+    width: `${r.width}px`,
+    right: 'auto',
+    maxHeight: props.listMaxHeight,
+    zIndex: '2000',
+    '--_bw': `${bw}px`,
+    '--_bc': 'var(--color-primary, #f35)',
+    '--_radius': props.size === 'sm' ? '6px' : '8px',
+    '--st-multiselect-columns': String(resolvedColumns.value),
+  };
+}
+
 function toggle() {
   if (props.disabled) return;
   open.value = !open.value;
@@ -290,9 +327,10 @@ function onBackspace() {
 
 function onDocumentClick(e: MouseEvent) {
   if (!props.closeOnOutsideClick) return;
-  if (rootRef.value && !rootRef.value.contains(e.target as Node)) {
-    open.value = false;
-  }
+  const t = e.target as Node;
+  if (rootRef.value && rootRef.value.contains(t)) return;
+  if (listRef.value && listRef.value.contains(t)) return;
+  open.value = false;
 }
 
 function onKeydown(e: KeyboardEvent) {
@@ -311,5 +349,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', onDocumentClick);
   document.removeEventListener('keydown', onKeydown);
+  window.removeEventListener('scroll', updateMenuPosition, true);
+  window.removeEventListener('resize', updateMenuPosition);
 });
 </script>
