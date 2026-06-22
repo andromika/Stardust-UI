@@ -7,6 +7,7 @@
 )
   label.st-searchable-select__label(v-if="label" :for="triggerId") {{ label }}
   .st-searchable-select__trigger-wrap(
+    ref="triggerRef"
     :class="{ 'st-searchable-select__trigger-wrap--open': open }"
   )
     template(v-if="!open")
@@ -38,27 +39,29 @@
           @keydown.escape.prevent="handleEscape"
         )
         span.st-searchable-select__chevron(aria-hidden="true")
-  ul.st-searchable-select__list(
-    v-show="open"
-    role="listbox"
-    :aria-labelledby="triggerId"
-    :style="{ maxHeight: listMaxHeight }"
-    tabindex="-1"
-  )
-    li.st-searchable-select__list-header(v-if="$slots['list-header']")
-      slot(name="list-header")
-    li.st-searchable-select__option(
-      v-for="(opt, idx) in filteredOptions"
-      :key="String(getOptionValue(opt))"
-      :ref="(el) => setFocusedRef(el, opt, idx)"
-      role="option"
-      :aria-selected="isSelected(opt)"
-      :class="getOptionClasses(opt, idx)"
-      @click="select(opt)"
-      @mouseenter="focusedIndex = idx"
+  Teleport(to="body")
+    ul.st-searchable-select__list.st-searchable-select__list--floating(
+      v-show="open"
+      ref="listRef"
+      role="listbox"
+      :aria-labelledby="triggerId"
+      :style="menuStyle"
+      tabindex="-1"
     )
-      slot(name="option" :option="opt")
-        span.st-searchable-select__name {{ getOptionLabel(opt) }}
+      li.st-searchable-select__list-header(v-if="$slots['list-header']")
+        slot(name="list-header")
+      li.st-searchable-select__option(
+        v-for="(opt, idx) in filteredOptions"
+        :key="String(getOptionValue(opt))"
+        :ref="(el) => setFocusedRef(el, opt, idx)"
+        role="option"
+        :aria-selected="isSelected(opt)"
+        :class="getOptionClasses(opt, idx)"
+        @click="select(opt)"
+        @mouseenter="focusedIndex = idx"
+      )
+        slot(name="option" :option="opt")
+          span.st-searchable-select__name {{ getOptionLabel(opt) }}
 </template>
 
 <script setup lang="ts">
@@ -112,6 +115,9 @@ const searchInputRef = ref<HTMLInputElement | null>(null);
 const open = ref(false);
 const searchQuery = ref('');
 const focusedIndex = ref(0);
+const triggerRef = ref<HTMLElement | null>(null);
+const listRef = ref<HTMLElement | null>(null);
+const menuStyle = ref<Record<string, string>>({});
 
 const resolvedColumns = computed(() => {
   const raw = props.columns ?? (props.columnLayout ? 2 : 1);
@@ -186,7 +192,15 @@ watch(open, (isOpen) => {
   if (isOpen) {
     searchQuery.value = '';
     focusedIndex.value = 0;
-    nextTick(() => searchInputRef.value?.focus());
+    nextTick(() => {
+      updateMenuPosition();
+      searchInputRef.value?.focus();
+    });
+    window.addEventListener('scroll', updateMenuPosition, true);
+    window.addEventListener('resize', updateMenuPosition);
+  } else {
+    window.removeEventListener('scroll', updateMenuPosition, true);
+    window.removeEventListener('resize', updateMenuPosition);
   }
 });
 
@@ -194,6 +208,29 @@ watch(focusedIndex, (idx) => {
   if (idx < 0) focusedIndex.value = 0;
   if (idx >= filteredOptions.value.length) focusedIndex.value = filteredOptions.value.length - 1;
 });
+
+// Listbox is teleported to <body> so it is never clipped by an overflow
+// ancestor; re-establish the border vars + column count inline and pin it to
+// the trigger with fixed coords, re-synced on scroll/resize while open.
+function updateMenuPosition() {
+  const el = triggerRef.value;
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const bw = props.variant === 'ghost' ? 2 : 3;
+  menuStyle.value = {
+    position: 'fixed',
+    left: `${r.left}px`,
+    top: `${r.bottom - bw}px`,
+    width: `${r.width}px`,
+    right: 'auto',
+    maxHeight: props.listMaxHeight,
+    zIndex: '2000',
+    '--_bw': `${bw}px`,
+    '--_bc': 'var(--color-primary, #f35)',
+    '--_radius': props.size === 'sm' ? '6px' : '8px',
+    '--st-searchable-select-columns': String(resolvedColumns.value),
+  };
+}
 
 function toggle() {
   if (props.disabled) return;
@@ -227,9 +264,10 @@ function handleEscape() {
 
 function onDocumentClick(e: MouseEvent) {
   if (!props.closeOnOutsideClick) return;
-  if (rootRef.value && !rootRef.value.contains(e.target as Node)) {
-    open.value = false;
-  }
+  const t = e.target as Node;
+  if (rootRef.value && rootRef.value.contains(t)) return;
+  if (listRef.value && listRef.value.contains(t)) return;
+  open.value = false;
 }
 
 function onKeydown(e: KeyboardEvent) {
@@ -248,5 +286,7 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', onDocumentClick);
   document.removeEventListener('keydown', onKeydown);
+  window.removeEventListener('scroll', updateMenuPosition, true);
+  window.removeEventListener('resize', updateMenuPosition);
 });
 </script>
