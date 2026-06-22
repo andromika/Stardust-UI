@@ -268,6 +268,8 @@ function updateMenuPosition() {
     left: `${r.left}px`,
     top: `${r.bottom - bw}px`,
     width: `${r.width}px`,
+    minWidth: `${r.width}px`,
+    maxWidth: `${r.width}px`,
     right: 'auto',
     maxHeight: props.listMaxHeight,
     zIndex: '2000',
