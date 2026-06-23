@@ -233,19 +233,50 @@ function setFocusedRef(el: unknown, idx: number) {
   }
 }
 
+// Close (instead of repositioning) once the trigger scrolls out of view or past
+// any overflow boundary, so the teleported listbox never floats orphaned.
+function triggerVisible(): boolean {
+  const el = triggerRef.value;
+  if (!el) return false;
+  const r = el.getBoundingClientRect();
+  if (r.bottom <= 0 || r.top >= window.innerHeight || r.right <= 0 || r.left >= window.innerWidth) return false;
+  let p = el.parentElement;
+  while (p) {
+    const s = getComputedStyle(p);
+    if (/(auto|scroll|hidden|clip)/.test(s.overflowY + s.overflowX)) {
+      const pr = p.getBoundingClientRect();
+      if (r.bottom <= pr.top || r.top >= pr.bottom || r.right <= pr.left || r.left >= pr.right) return false;
+    }
+    p = p.parentElement;
+  }
+  return true;
+}
+
+function onViewportChange() {
+  if (!triggerVisible()) { open.value = false; return; }
+  updateMenuPosition();
+}
+
+// Only one Select open at a time: opening one broadcasts its id; other open
+// instances hear it and close.
+function onOtherOpen(e: Event) {
+  if ((e as CustomEvent).detail !== triggerId.value) open.value = false;
+}
+
 watch(open, (isOpen) => {
   if (isOpen) {
+    window.dispatchEvent(new CustomEvent('st-select-open', { detail: triggerId.value }));
     searchQuery.value = '';
     focusedIndex.value = 0;
     nextTick(() => {
       updateMenuPosition();
       searchInputRef.value?.focus();
     });
-    window.addEventListener('scroll', updateMenuPosition, true);
-    window.addEventListener('resize', updateMenuPosition);
+    window.addEventListener('scroll', onViewportChange, true);
+    window.addEventListener('resize', onViewportChange);
   } else {
-    window.removeEventListener('scroll', updateMenuPosition, true);
-    window.removeEventListener('resize', updateMenuPosition);
+    window.removeEventListener('scroll', onViewportChange, true);
+    window.removeEventListener('resize', onViewportChange);
   }
 });
 
@@ -347,11 +378,13 @@ function onKeydown(e: KeyboardEvent) {
 onMounted(() => {
   document.addEventListener('click', onDocumentClick);
   document.addEventListener('keydown', onKeydown);
+  window.addEventListener('st-select-open', onOtherOpen);
 });
 onUnmounted(() => {
   document.removeEventListener('click', onDocumentClick);
   document.removeEventListener('keydown', onKeydown);
-  window.removeEventListener('scroll', updateMenuPosition, true);
-  window.removeEventListener('resize', updateMenuPosition);
+  window.removeEventListener('st-select-open', onOtherOpen);
+  window.removeEventListener('scroll', onViewportChange, true);
+  window.removeEventListener('resize', onViewportChange);
 });
 </script>
